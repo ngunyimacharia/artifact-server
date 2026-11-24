@@ -80,11 +80,17 @@ export class PostgresDatabase {
   static async inspect(
     config: PostgresDatabaseConfig,
   ): Promise<PostgresDatabase> {
+    // Optional TLS SNI/verification name for providers whose public hostname
+    // differs from the certificate's (e.g. Laravel Cloud's Neon aliases).
+    const tlsServername = process.env["ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME"];
     const runtime: PostgresRuntime = ManagedRuntime.make(PgClient.layer({
       applicationName: config.applicationName ?? "artifact-server-inspection",
       connectTimeout: "10 seconds",
       idleTimeout: "30 seconds",
       maxConnections: config.maxConnections ?? 1,
+      ...(tlsServername === undefined || tlsServername === ""
+        ? {}
+        : {ssl: {servername: tlsServername}}),
       url: config.url,
     }));
     try {
