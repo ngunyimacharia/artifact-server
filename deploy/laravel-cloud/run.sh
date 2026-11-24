@@ -26,12 +26,20 @@ esac
 : "${ARTIFACT_SERVER_PORT:=${PORT:-3000}}"
 : "${ARTIFACT_SERVER_HOST:=0.0.0.0}"
 
+# Inside Laravel Cloud, ep-*.c-N.aws-REGION.pg.laravel.cloud resolves to Neon
+# endpoints that present only *.c-N.REGION.aws.neon.tech certificates. Send the
+# Neon name as SNI and verify against it (full verification stays on).
+if [ -z "${ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME:-}" ]; then
+  db_host=$(printf %s "$ARTIFACT_SERVER_DATABASE_URL" | sed -E 's#^[a-z]+://([^@]*@)?([^:/?]+).*#\2#')
+  ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME=$(printf %s "$db_host" | sed -nE 's#^(ep-[^.]+)\.(c-[0-9]+)\.aws-([a-z0-9-]+)\.pg\.laravel\.cloud$#\1.\2.\3.aws.neon.tech#p')
+fi
+export ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME
 export ARTIFACT_SERVER_DATABASE_URL ARTIFACT_SERVER_OBJECT_STORAGE_PROVIDER \
   ARTIFACT_SERVER_S3_BUCKET ARTIFACT_SERVER_S3_REGION ARTIFACT_SERVER_S3_ENDPOINT \
   ARTIFACT_SERVER_S3_ACCESS_KEY_ID ARTIFACT_SERVER_S3_SECRET_ACCESS_KEY \
   ARTIFACT_SERVER_S3_FORCE_PATH_STYLE ARTIFACT_SERVER_PORT ARTIFACT_SERVER_HOST
 
-echo "laravel-cloud/run.sh: node $(node --version), host ${ARTIFACT_SERVER_HOST}, port ${ARTIFACT_SERVER_PORT}, bucket ${ARTIFACT_SERVER_S3_BUCKET:-<unset>}, path-style ${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE}, db ${ssl_note}"
+echo "laravel-cloud/run.sh: node $(node --version), host ${ARTIFACT_SERVER_HOST}, port ${ARTIFACT_SERVER_PORT}, bucket ${ARTIFACT_SERVER_S3_BUCKET:-<unset>}, path-style ${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE}, db ${ssl_note}, tls-servername ${ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME:-<host>}"
 
 if [ "$1" = "migrate" ] && [ "${ARTIFACT_SERVER_DB_PROBE:-1}" = "1" ]; then
   node "$(dirname "$0")/db-probe.mjs" || true

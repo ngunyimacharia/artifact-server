@@ -41,7 +41,7 @@ if (sock) {
   log("sslrequest reply", JSON.stringify(reply));
   if (reply === "S") {
     await step("tls", (done) => {
-      const t = tls.connect({socket: sock, servername: host});
+      const t = tls.connect({socket: sock, servername: process.env.ARTIFACT_SERVER_DATABASE_TLS_SERVERNAME || host});
       t.once("secureConnect", () => { log("tls ok", t.getProtocol(), "authorized", t.authorized, t.authorizationError ?? ""); t.destroy(); done(true); });
       t.once("error", (e) => { log("tls error", e.code, e.message); done(null); });
     });
