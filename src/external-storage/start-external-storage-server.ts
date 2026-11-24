@@ -38,7 +38,10 @@ export interface RunningExternalStorageServer {
 export async function startExternalStorageServer(
   config: ExternalStorageServerConfig,
 ): Promise<RunningExternalStorageServer> {
-  if (config.interactiveIdentityProvider === undefined) {
+  if (
+    config.interactiveIdentityProvider === undefined &&
+    config.browserAccess.mode !== "local_owner"
+  ) {
     throw new Error(
       "A private-team server requires exactly one OIDC or WorkOS browser-login provider.",
     );

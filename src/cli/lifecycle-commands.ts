@@ -60,6 +60,7 @@ import {writeGitHistoryConfigurationWarnings} from
   "./git-history-configuration-warnings.js";
 import {
   browserLoginKinds,
+  localOwnerBrowserAccess,
   privateTeamBrowserAccess,
 } from "../core/browser-access.js";
 
@@ -320,6 +321,8 @@ function configureExternalStorageStart(
         ? privateTeamBrowserAccess(browserLoginKinds.workOs)
         : oidc !== null
         ? privateTeamBrowserAccess(browserLoginKinds.oidc)
+        : unsafePublicLocalOwnerEnabled(process.env)
+        ? localOwnerBrowserAccess
         : missingPrivateTeamIdentityProvider();
       let serverConfig: ExternalStorageServerConfig = {
         apiToken: parsed.apiToken,
@@ -502,6 +505,27 @@ function externalMaintenanceConfig(
   };
 }
 
+/**
+ * Opt-in escape hatch for throwaway demos: run an external-storage server with
+ * no identity provider, admitting every browser as the bootstrap administrator.
+ * Anyone who can reach the application origin gains full administrator access.
+ */
+function unsafePublicLocalOwnerEnabled(environment: NodeJS.ProcessEnv): boolean {
+  if (environment["ARTIFACT_SERVER_UNSAFE_PUBLIC_LOCAL_OWNER"] !== "true") return false;
+  const configuredProviders = Object.keys(environment).filter((name) =>
+    name.startsWith("ARTIFACT_SERVER_WORKOS_") || name.startsWith("ARTIFACT_SERVER_OIDC_")
+  );
+  if (configuredProviders.length > 0) {
+    throw new Error(
+      "ARTIFACT_SERVER_UNSAFE_PUBLIC_LOCAL_OWNER cannot be combined with a WorkOS or OIDC provider.",
+    );
+  }
+  console.warn(
+    "WARNING: ARTIFACT_SERVER_UNSAFE_PUBLIC_LOCAL_OWNER=true. Every visitor is signed in as the administrator.",
+  );
+  return true;
+}
+
 function missingPrivateTeamIdentityProvider(): never {
   throw new Error(
     "A private-team server requires exactly one OIDC or WorkOS browser-login provider.",
@@ -532,7 +556,11 @@ async function summarizeConfiguration(
       configuration.bootstrapAdministratorEmail,
     ARTIFACT_SERVER_ORIGIN: configuration.applicationOrigin,
   });
-  if (workOs === null && oidc === null) missingPrivateTeamIdentityProvider();
+  if (
+    workOs === null && oidc === null &&
+    !(configuration.deploymentMode !== "compact" &&
+      unsafePublicLocalOwnerEnabled(process.env))
+  ) missingPrivateTeamIdentityProvider();
   return summarizeRuntimeConfiguration(
     configuration,
     workOs === null ? "oidc" : "workos",

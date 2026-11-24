@@ -70,7 +70,7 @@ export interface ExternalStorageRuntimeConfig {
   readonly apiOAuthResource?: ApiOAuthResourceConfiguration;
   readonly applicationOrigin?: string;
   readonly bootstrapAdministratorEmail: string;
-  readonly browserAccess: Extract<BrowserAccess, {readonly mode: "private_team"}>;
+  readonly browserAccess: BrowserAccess;
   readonly clock?: Clock;
   readonly completedRequestLogSampleRate?: number;
   readonly contentDomain: string;
@@ -234,6 +234,7 @@ export async function createExternalStorageRuntime(
       gitHistory: gitHistoryMonitor?.reader ??
         fixedGitHistoryCapabilityReader(gitHistory.capability),
       readiness: () => externalStorageReadiness(database, connectedObjectStorage),
+      remoteLocalOwner: config.browserAccess.mode === "local_owner",
       trustedApplicationOrigin: config.applicationOrigin ?? null,
       webAssets: createNodeWebAssetStore(),
     };

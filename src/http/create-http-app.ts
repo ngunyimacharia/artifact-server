@@ -489,6 +489,8 @@ export interface HttpAppDependencies {
   readonly mcpOAuthResource?: McpOAuthResourceConfiguration;
   readonly readiness?: ReadinessProbe;
   readonly runtimeLifecycle?: RuntimeLifecycle;
+  /** Allow local-owner sessions from the trusted remote origin (unsafe demo mode). */
+  readonly remoteLocalOwner?: boolean;
   readonly trustedApplicationOrigin: string | null;
   readonly webAssets?: WebAssetStore;
 }
@@ -2680,6 +2682,22 @@ function requireLocalOwnerExchangeBoundary(
   dependencies: HttpAppDependencies,
 ): void {
   const requestUrl = new URL(context.req.url);
+  if (
+    dependencies.remoteLocalOwner === true &&
+    dependencies.trustedApplicationOrigin !== null
+  ) {
+    const remoteFetchMode = context.req.header("sec-fetch-mode");
+    if (
+      context.req.header("origin") !== dependencies.trustedApplicationOrigin
+      || context.req.header("sec-fetch-site") !== "same-origin"
+      || (remoteFetchMode !== "cors" && remoteFetchMode !== "same-origin")
+    ) {
+      throw new AuthorizationDenied({
+        message: "Local-owner access is available only to the application origin.",
+      });
+    }
+    return;
+  }
   const proxyCredential = context.req.header(
     "x-artifact-server-development-proxy",
   );
