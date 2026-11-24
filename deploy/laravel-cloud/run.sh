@@ -33,4 +33,8 @@ export ARTIFACT_SERVER_DATABASE_URL ARTIFACT_SERVER_OBJECT_STORAGE_PROVIDER \
 
 echo "laravel-cloud/run.sh: node $(node --version), host ${ARTIFACT_SERVER_HOST}, port ${ARTIFACT_SERVER_PORT}, bucket ${ARTIFACT_SERVER_S3_BUCKET:-<unset>}, path-style ${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE}, db ${ssl_note}"
 
+if [ "$1" = "migrate" ] && [ "${ARTIFACT_SERVER_DB_PROBE:-1}" = "1" ]; then
+  node "$(dirname "$0")/db-probe.mjs" || true
+fi
+
 exec node "$(dirname "$0")/../../dist/cli/main.js" "$@"
