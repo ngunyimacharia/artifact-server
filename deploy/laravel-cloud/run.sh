@@ -24,7 +24,7 @@ esac
 : "${ARTIFACT_SERVER_S3_SECRET_ACCESS_KEY:=${AWS_SECRET_ACCESS_KEY:-}}"
 : "${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE:=${AWS_USE_PATH_STYLE_ENDPOINT:-false}}"
 : "${ARTIFACT_SERVER_PORT:=${PORT:-3000}}"
-: "${ARTIFACT_SERVER_HOST:=0.0.0.0}"
+: "${ARTIFACT_SERVER_HOST:=::}"
 
 # Inside Laravel Cloud, ep-*.c-N.aws-REGION.pg.laravel.cloud resolves to Neon
 # endpoints that present only *.c-N.REGION.aws.neon.tech certificates. Send the
