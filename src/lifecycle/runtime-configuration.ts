@@ -748,7 +748,7 @@ export function parseLinkRoots(
 function parseHostname(
   value: string,
 ): Effect.Effect<string, RuntimeConfigurationError> {
-  if (value === "0.0.0.0" || value === "127.0.0.1" || value === "::1") {
+  if (value === "0.0.0.0" || value === "::" || value === "127.0.0.1" || value === "::1") {
     return Effect.succeed(value);
   }
   return parseRequiredEnvironment("ARTIFACT_SERVER_HOST", value, hostnameSchema);
