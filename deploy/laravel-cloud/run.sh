@@ -7,6 +7,15 @@
 #        sh deploy/laravel-cloud/run.sh start-external-storage
 
 : "${ARTIFACT_SERVER_DATABASE_URL:=${DATABASE_URL:-}}"
+# Laravel Serverless Postgres (Neon) requires TLS, but @effect/sql-pg only
+# enables TLS when the URL carries sslmode. Append it when absent.
+ssl_note="sslmode present"
+case "$ARTIFACT_SERVER_DATABASE_URL" in
+  *sslmode=*) ;;
+  *\?*) ARTIFACT_SERVER_DATABASE_URL="${ARTIFACT_SERVER_DATABASE_URL}&sslmode=require"; ssl_note="sslmode=require appended" ;;
+  ?*) ARTIFACT_SERVER_DATABASE_URL="${ARTIFACT_SERVER_DATABASE_URL}?sslmode=require"; ssl_note="sslmode=require appended" ;;
+  *) ssl_note="no database url" ;;
+esac
 : "${ARTIFACT_SERVER_OBJECT_STORAGE_PROVIDER:=s3}"
 : "${ARTIFACT_SERVER_S3_BUCKET:=${AWS_BUCKET:-}}"
 : "${ARTIFACT_SERVER_S3_REGION:=${AWS_DEFAULT_REGION:-${AWS_REGION:-auto}}}"
@@ -22,6 +31,6 @@ export ARTIFACT_SERVER_DATABASE_URL ARTIFACT_SERVER_OBJECT_STORAGE_PROVIDER \
   ARTIFACT_SERVER_S3_ACCESS_KEY_ID ARTIFACT_SERVER_S3_SECRET_ACCESS_KEY \
   ARTIFACT_SERVER_S3_FORCE_PATH_STYLE ARTIFACT_SERVER_PORT ARTIFACT_SERVER_HOST
 
-echo "laravel-cloud/run.sh: node $(node --version), host ${ARTIFACT_SERVER_HOST}, port ${ARTIFACT_SERVER_PORT}, bucket ${ARTIFACT_SERVER_S3_BUCKET:-<unset>}, path-style ${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE}"
+echo "laravel-cloud/run.sh: node $(node --version), host ${ARTIFACT_SERVER_HOST}, port ${ARTIFACT_SERVER_PORT}, bucket ${ARTIFACT_SERVER_S3_BUCKET:-<unset>}, path-style ${ARTIFACT_SERVER_S3_FORCE_PATH_STYLE}, db ${ssl_note}"
 
 exec node "$(dirname "$0")/../../dist/cli/main.js" "$@"
